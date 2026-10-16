@@ -1,120 +1,214 @@
-import java.util.Scanner;
-public class OnlineStore {
-public static void main(String[] args) {
 
-    Scanner sc = new Scanner(System.in);
+import java.util.*;
+import java.io.*;
 
-    String[] products = {"Laptop", "Headphones", "Mouse", "Keyboard"};
-    double[] prices = {50000, 2000, 800, 1500};
+@SuppressWarnings("unused")
+class Product {
+    int id;
+    String name;
+    double price;
+    int stock;
 
-    int[] cart = new int[4];
+    Product(int id, String name, double price, int stock) {
+        this.id = id;
+        this.name = name;
+        this.price = price;
+        this.stock = stock;
+    }
 
-    int choice;
+    void display() {
+        System.out.println(id + ". " + name
+                + " - Rs." + price + " (Stock: " + stock + ")");
+    }
+}
 
-    do {
-        System.out.println("\n===== ONLINE STORE CART & ORDER PIPELINE =====");
-        System.out.println("1. View Products");
-        System.out.println("2. Add Product to Cart");
-        System.out.println("3. View Cart");
-        System.out.println("4. Place Order");
-        System.out.println("5. Exit");
+class CartItem {
+    Product product;
+    int quantity;
 
-        System.out.print("Enter your choice: ");
-        choice = sc.nextInt();
+    CartItem(Product product, int quantity) {
+        this.product = product;
+        this.quantity = quantity;
+    }
 
-        switch (choice) {
+    double getAmount() {
+        return product.price * quantity;
+    }
+}
 
-            case 1:
-                System.out.println("\n--- Products ---");
+public class OnlineShopping {
+    static Scanner sc = new Scanner(System.in);
 
-                for (int i = 0; i < products.length; i++) {
-                    System.out.println((i + 1) + ". " + products[i]
-                            + " - Rs." + prices[i]);
-                }
-                break;
+    static ArrayList<Product> products = new ArrayList<>();
+    static ArrayList<CartItem> cart = new ArrayList<>();
 
-            case 2:
-                System.out.println("\n--- Products ---");
+    static void displayProducts() {
+        System.out.println("\n--- AVAILABLE PRODUCTS ---");
+        products.forEach(Product::display);
+    }
 
-                for (int i = 0; i < products.length; i++) {
-                    System.out.println((i + 1) + ". " + products[i]
-                            + " - Rs." + prices[i]);
-                }
+    static Product searchProduct(String name) {
+        for (Product p : products) {
+            if (p.name.equalsIgnoreCase(name)) {
+                return p;
+            }
+        }
+        return null;
+    }
 
-                System.out.print("Enter product number: ");
-                int product = sc.nextInt();
+    @SuppressWarnings("unused")
+    static void addToCart() {
+        System.out.print("Enter product name: ");
+        String name = sc.nextLine().trim();
 
-                if (product >= 1 && product <= products.length) {
-                    cart[product - 1]++;
-                    System.out.println(products[product - 1]
-                            + " added to cart!");
-                } else {
-                    System.out.println("Invalid product number.");
-                }
-                break;
+        Product p = searchProduct(name);
 
-            case 3:
-                System.out.println("\n--- Your Cart ---");
-
-                double total = 0;
-
-                for (int i = 0; i < products.length; i++) {
-
-                    if (cart[i] > 0) {
-                        double itemTotal = cart[i] * prices[i];
-
-                        System.out.println(products[i]
-                                + " x " + cart[i]
-                                + " = Rs." + itemTotal);
-
-                        total += itemTotal;
-                    }
-                }
-
-                System.out.println("Total: Rs." + total);
-                break;
-
-            case 4:
-                double orderTotal = 0;
-
-                for (int i = 0; i < products.length; i++) {
-                    orderTotal += cart[i] * prices[i];
-                }
-
-                if (orderTotal == 0) {
-                    System.out.println("Your cart is empty!");
-                } else {
-                    System.out.println("\n===== ORDER CONFIRMED =====");
-
-                    for (int i = 0; i < products.length; i++) {
-                        if (cart[i] > 0) {
-                            System.out.println(products[i]
-                                    + " x " + cart[i]);
-                        }
-                    }
-
-                    System.out.println("Total Amount: Rs." + orderTotal);
-                    System.out.println("Order Status: Confirmed");
-                    System.out.println("Thank you for shopping!");
-
-                    // Empty the cart after ordering
-                    for (int i = 0; i < cart.length; i++) {
-                        cart[i] = 0;
-                    }
-                }
-                break;
-
-            case 5:
-                System.out.println("Thank you! Visit again.");
-                break;
-
-            default:
-                System.out.println("Invalid choice.");
+        if (p == null) {
+            System.out.println("Product not found!");
+            return;
         }
 
-    } while (choice != 5);
+        System.out.print("Enter quantity: ");
 
-    sc.close();
-}
+        if (!sc.hasNextInt()) {
+            System.out.println("Please enter a valid quantity.");
+            sc.nextLine();
+            return;
+        }
+
+        int quantity = sc.nextInt();
+        sc.nextLine();
+
+        int cartQuantity = 0;
+
+        for (CartItem c : cart) {
+            if (c.product.id == p.id) {
+                cartQuantity = c.quantity;
+                break;
+            }
+        }
+
+        if (quantity <= 0 || quantity > p.stock) {
+            System.out.println("Invalid quantity or insufficient stock!");
+            return;
+        }
+
+        CartItem item = null;
+
+        for (CartItem c : cart) {
+            if (c.product.id == p.id) {
+                item = c;
+                break;
+            }
+        }
+
+        if (item == null) {
+            cart.add(new CartItem(p, quantity));
+        } else {
+            item.quantity += quantity;
+        }
+
+        p.stock -= quantity;
+
+        System.out.println("Product added to cart successfully!");
+    }
+
+    static double calculateTotal() {
+        return cart.stream()
+                .mapToDouble(CartItem::getAmount)
+                .sum();
+    }
+
+    static void viewCart() {
+        System.out.println("\n--- YOUR SHOPPING CART ---");
+
+        if (cart.isEmpty()) {
+            System.out.println("Your cart is empty.");
+            return;
+        }
+
+        for (CartItem item : cart) {
+            System.out.println(item.product.name
+                    + " x " + item.quantity
+                    + " = Rs." + item.getAmount());
+        }
+
+        System.out.println("Total Bill: Rs." + calculateTotal());
+    }
+
+    static void saveOrder() {
+        if (cart.isEmpty()) {
+            System.out.println("Cart is empty. Add products first.");
+            return;
+        }
+
+        try (PrintWriter writer =
+                     new PrintWriter(new FileWriter("orders.txt", true))) {
+
+            writer.println("--- NEW ORDER ---");
+
+            for (CartItem item : cart) {
+                writer.println(item.product.name + " x "
+                        + item.quantity + " = Rs."
+                        + item.getAmount());
+            }
+
+            writer.println("Total: Rs." + calculateTotal());
+            writer.println();
+
+            System.out.println("Order saved successfully!");
+            System.out.println("Final Bill: Rs." + calculateTotal());
+
+            cart.clear();
+
+        } catch (IOException e) {
+            System.out.println("Unable to save order.");
+        }
+    }
+
+    public static void main(String[] args) {
+        products.add(new Product(1, "Laptop", 45000, 5));
+        products.add(new Product(2, "Headphones", 1500, 10));
+        products.add(new Product(3, "Mouse", 500, 20));
+        products.add(new Product(4, "Keyboard", 1200, 15));
+
+        int choice = 0;
+
+        do {
+            System.out.println("\n===== ONLINE SHOPPING SYSTEM =====");
+            System.out.println("1. View Products");
+            System.out.println("2. Search and Add to Cart");
+            System.out.println("3. View Cart");
+            System.out.println("4. Place Order");
+            System.out.println("5. Exit");
+            System.out.print("Enter your choice: ");
+
+            if (!sc.hasNextInt()) {
+                System.out.println("Please enter a valid number.");
+                sc.nextLine();
+                continue;
+            }
+
+            choice = sc.nextInt();
+            sc.nextLine();
+
+            switch (choice) {
+                case 1 -> displayProducts();
+
+                case 2 -> addToCart();
+
+                case 3 -> viewCart();
+
+                case 4 -> saveOrder();
+
+                case 5 -> System.out.println("Thank you for shopping!");
+
+                default -> System.out.println("Invalid choice!");
+            }
+
+        } while (choice != 5);
+
+        sc.close();
+    }
 }
 
